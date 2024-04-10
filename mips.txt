@@ -130,4 +130,4 @@ rightface:
 #Exit program
 
 li $v0, 10 # exit code
-syscall # exit to OS
+syscall # exit to OS.
