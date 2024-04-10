@@ -1,0 +1,133 @@
+.data
+
+# DONOTMODIFYTHISLINE
+
+frameBuffer:               .space 0x80000
+w:                        .word 200
+h:                        .word 100
+d:                        .word 100
+cr:                        .word 10 
+cg:                        .word 10 
+cb:                        .word 10 
+# DONOTMODIFYTHISLINE
+
+# Your other variables go BELOW here only
+.text
+li $s0, 512 # screen display width
+li $s1, 256 # screen display height
+lw $s2, h # h variable 
+lw $s3, d # d variable
+lw $s4, w # w variable
+li $s5, 0x00FFFF00 # yellow color
+la $t2, frameBuffer # top left pixel
+
+setYellowBackground:
+        li $t3, 0 # row counter
+        li $t4, 0 # column counter
+        inner_loop:
+                sw $s5, 0($t2) # store yellow in current location
+                addi $t2, $t2, 4 # shift current location one right
+                addi $t4, $t4, 1 # add one to column counter
+                bne $t4, $s0, inner_loop # if column counter != screen width, do again
+        addi $t3, $t3, 1
+        li $t4, 0
+        bne $t3, $s1, inner_loop
+        
+      
+la $t2, frameBuffer # return to top left pixel
+add $t3, $s2, $s3 # h + d
+sub $t3, $s1, $t3 # 256 - (h + d)
+srl $t5, $t3, 1 # (256 - (h + d)) / 2
+li $s5, 0x00FFFF00 # yellow
+
+    bgt $s2, $s1, setYellowBackground
+    bgt $s4, $s0, setYellowBackground
+    
+
+
+setBackground:
+        li $t3, 0 # row counter
+        li $t4, 0 # column counter
+        yellow_inner_loop:
+                sw $s5, 0($t2) # store yellow in current location
+                addi $t2, $t2, 4 # shift current location one right
+                addi $t4, $t4, 1 # add one to column counter
+                bne $t4, $s0, yellow_inner_loop # if column counter != screen width, do again
+        addi $t3, $t3, 1
+        li $t4, 0
+        bne $t3, $t5, yellow_inner_loop
+       
+li $s5, 0x00ADD8E6 # light blue color
+add $t1, $s3, $s4 # w + d
+sub $t1, $s0, $t1 # 512 - (w + d)
+srl $t1, $t1, 1 # (512 - (w + d)) / 2
+add $t1, $t1, $s3 # (512 - (w + d)) / 2) + d
+sll $t1, $t1, 2 # 4 * ((512 - (w + d) / 2) + d))
+add $t2, $t2, $t1 # moves solid shape to direct center of location
+
+topFace:
+	li $t3, 0 # row counter
+        li $t4, 0 # column counter
+        sll $t1, $s4, 2
+        topface_inner_loop:
+                sw $s5, 0($t2) # store light blue in current location
+                addi $t2, $t2, 4 # shift current location one right
+                addi $t4, $t4, 1 # add one to column counter
+                bne $t4, $s4, topface_inner_loop 
+        addi $t2, $t2, 2044
+        sub $t2, $t2, $t1
+        addi $t3, $t3, 1
+        li $t4, 0
+        bne $t3, $s3, topface_inner_loop
+addi $t2, $t2, 4
+li $s5, 0x000000FF
+
+frontface:
+        li $t3, 0 # row counter
+        li $t4, 0 # column counter
+        frontface_inner_loop:
+                sw $s5, 0($t2) # store yellow in current location
+                addi $t2, $t2, 4 # shift current location one right
+                addi $t4, $t4, 1 # add one to column counter
+                bne $t4, $s4, frontface_inner_loop # if column counter != screen width, do again
+        addi $t2, $t2, 2048
+        sub $t2, $t2, $t1
+        addi $t3, $t3, 1
+        li $t4, 0
+        bne $t3, $s2, frontface_inner_loop
+addi $t2, $t2, -4096
+add $t2, $t2, $t1
+li $s5, 0x00FF00FF
+
+
+#Set color to light blue
+li $s5, 0x007BA3D5
+
+# Calculate the start position for the right side face
+move $t6, $t2             # Copy the current position of $t2
+add $t6, $t6, $s4         # Move to the end of the width of the front face
+sll $t6, $t6, 2           # Multiply by 4 because each pixel is 4 bytes
+
+rightface:
+	li $t3, 0
+	li $t4, 0
+	li $t5, 0
+	rightface_inner_loop:
+                sw $s5, 0($t2) # store yellow in current location
+               	addi $t4, $t4, 1 # add one to column counter
+                addi $t2, $t2, -2048
+                addi $t5, $t5, 2048
+                bne $t4, $s2, rightface_inner_loop # if column counter != screen width, do again
+	add $t2, $t2, $t5
+	addi $t2, $t2, 4
+	addi $t2, $t2, -2048
+	
+	addi $t3, $t3, 1
+	li $t5, 0
+	li $t4, 0
+	bne $t3, $s3, rightface_inner_loop
+
+#Exit program
+
+li $v0, 10 # exit code
+syscall # exit to OS
